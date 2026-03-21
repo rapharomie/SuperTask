@@ -39,7 +39,7 @@ export function useTasks(settings: UserSettings) {
   const loadTasks = useCallback(async () => {
     setLoading(true);
     try {
-      if (isSupabaseConfigured()) {
+      if (isSupabaseConfigured() && supabase) {
         const { data, error } = await supabase
           .from('tasks')
           .select('*')
@@ -84,7 +84,7 @@ export function useTasks(settings: UserSettings) {
       updatedAt: now,
     }));
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       for (const t of seeded) {
         const row = taskToRow(t as Task & { title: string });
         await supabase.from('tasks').insert(row);
@@ -118,7 +118,7 @@ export function useTasks(settings: UserSettings) {
         return next;
       });
 
-      if (isSupabaseConfigured()) {
+      if (isSupabaseConfigured() && supabase) {
         try {
           const row = taskToRow(newTask as Task & { title: string });
           row.id = newTask.id;
@@ -155,7 +155,7 @@ export function useTasks(settings: UserSettings) {
         return next;
       });
 
-      if (isSupabaseConfigured()) {
+      if (isSupabaseConfigured() && supabase) {
         try {
           const row: Record<string, unknown> = {};
           if (updates.title !== undefined) row.title = updates.title;
@@ -212,7 +212,7 @@ export function useTasks(settings: UserSettings) {
       return next;
     });
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       try {
         const { error } = await supabase.from('tasks').delete().eq('id', id);
         if (error) console.error('Permanent delete sync error:', error);
@@ -231,7 +231,7 @@ export function useTasks(settings: UserSettings) {
       return next;
     });
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       try {
         const { error } = await supabase
           .from('tasks')

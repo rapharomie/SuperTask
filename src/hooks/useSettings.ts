@@ -11,7 +11,7 @@ export function useSettings() {
 
   // Load from Supabase
   useEffect(() => {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured() || !supabase) return;
 
     (async () => {
       try {
@@ -39,7 +39,7 @@ export function useSettings() {
   }, []);
 
   const saveSetting = useCallback(async (key: string, value: unknown) => {
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && supabase) {
       try {
         const { error } = await supabase
           .from('user_settings')
