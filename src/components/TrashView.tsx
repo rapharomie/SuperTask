@@ -23,7 +23,6 @@ export default function TrashView({
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [emptyConfirmation, setEmptyConfirmation] = useState(false);
 
-  // Sort tasks by deletion date (most recent first)
   const sortedTasks = [...tasks].sort((a, b) => {
     if (!a.deletedAt || !b.deletedAt) return 0;
     return new Date(b.deletedAt!).getTime() - new Date(a.deletedAt!).getTime();
@@ -47,182 +46,168 @@ export default function TrashView({
     }
   };
 
-  if (sortedTasks.length === 0) {
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-[var(--bg-card)] rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-[var(--bg-primary)] rounded-lg">
-                <Trash2 size={24} className="text-[var(--accent)]" />
-              </div>
-              <h2 className="text-2xl font-bold text-[var(--text-primary)]">Lixeira</h2>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-[var(--bg-primary)] rounded-lg transition-colors"
-              aria-label="Fechar"
-            >
-              <X size={20} className="text-[var(--text-secondary)]" />
-            </button>
-          </div>
-
-          {/* Empty State */}
-          <div className="text-center py-12">
-            <div className="flex justify-center mb-4">
-              <Inbox size={48} className="text-[var(--text-muted)]" />
-            </div>
-            <p className="text-[var(--text-muted)] text-lg">A lixeira está vazia</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[var(--bg-card)] rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 animate-fadeIn">
+      <div
+        className="rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col animate-slideIn overflow-hidden"
+        style={{ backgroundColor: 'var(--bg-card)' }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[var(--border-color)]">
+        <div
+          className="flex items-center justify-between px-6 py-4 border-b"
+          style={{ borderColor: 'var(--border-color)' }}
+        >
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[var(--bg-primary)] rounded-lg">
-              <Trash2 size={24} className="text-[var(--accent)]" />
+            <div
+              className="p-2 rounded-lg"
+              style={{ backgroundColor: 'var(--accent-subtle)' }}
+            >
+              <Trash2 size={20} style={{ color: 'var(--accent)' }} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-[var(--text-primary)]">Lixeira</h2>
-              <p className="text-sm text-[var(--text-muted)] mt-1">
-                Tarefas excluídas ficam aqui por 30 dias antes da exclusão permanente.
-              </p>
+              <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                Lixeira
+              </h2>
+              {sortedTasks.length > 0 && (
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {sortedTasks.length} {sortedTasks.length === 1 ? 'item' : 'itens'} · 30 dias para exclusão
+                </p>
+              )}
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[var(--bg-primary)] rounded-lg transition-colors"
-            aria-label="Fechar"
+            className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
           >
-            <X size={20} className="text-[var(--text-secondary)]" />
+            <X size={18} style={{ color: 'var(--text-muted)' }} />
           </button>
         </div>
 
-        {/* Tasks List */}
+        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="space-y-3">
-            {sortedTasks.map((task) => {
-              const daysLeft = daysUntilPurge(task.deletedAt!);
-              const isUrgent = daysLeft < 3;
+          {sortedTasks.length === 0 ? (
+            <div className="text-center py-16">
+              <Inbox size={40} style={{ color: 'var(--text-muted)' }} className="mx-auto mb-3" />
+              <p style={{ color: 'var(--text-muted)' }}>A lixeira está vazia</p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {sortedTasks.map((task) => {
+                const daysLeft = daysUntilPurge(task.deletedAt!);
+                const isUrgent = daysLeft < 3;
 
-              return (
-                <div
-                  key={task.id}
-                  className={`p-4 rounded-lg border transition-colors ${
-                    isUrgent
-                      ? 'bg-[#ef4444]/10 border-[#ef4444] ring-1 ring-[#ef4444]/20'
-                      : 'bg-[var(--bg-primary)] border-[var(--border-color)] hover:border-[var(--accent)]'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      {/* Title and Score */}
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-[var(--text-primary)] font-medium truncate flex-1">
-                          {task.title}
-                        </h3>
-                        {task.priorityScore !== undefined && (
-                          <span
-                            className="px-2 py-1 rounded text-xs font-semibold text-white whitespace-nowrap"
-                            style={{ backgroundColor: getScoreColor(task.priorityScore) }}
-                          >
-                            {Math.round(task.priorityScore)}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Tags */}
-                      {task.tags && task.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {task.tags.map((tag) => (
+                return (
+                  <div
+                    key={task.id}
+                    className="p-4 rounded-xl border transition-colors"
+                    style={{
+                      backgroundColor: isUrgent ? 'var(--danger-light)' : 'var(--bg-primary)',
+                      borderColor: isUrgent ? 'var(--danger)' : 'var(--border-color)',
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2.5 mb-1.5">
+                          <h3 className="font-medium text-sm truncate flex-1" style={{ color: 'var(--text-primary)' }}>
+                            {task.title}
+                          </h3>
+                          {task.priorityScore !== undefined && (
                             <span
-                              key={tag}
-                              className="px-2 py-1 bg-[var(--border-color)] text-[var(--text-secondary)] text-xs rounded"
+                              className="px-2 py-0.5 rounded-md text-[11px] font-bold text-white"
+                              style={{ backgroundColor: getScoreColor(task.priorityScore) }}
                             >
-                              {tag}
+                              {Math.round(task.priorityScore)}
                             </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Deletion Info */}
-                      <div className="flex items-center gap-4 text-xs text-[var(--text-muted)]">
-                        <span>Excluída em {formatDateTime(task.deletedAt!)}</span>
-                        <div className="flex items-center gap-1">
-                          {isUrgent && (
-                            <AlertTriangle size={14} className="text-[#ef4444]" />
                           )}
-                          <span className={isUrgent ? 'text-[#ef4444] font-semibold' : ''}>
-                            {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'} restantes
-                          </span>
+                        </div>
+
+                        {task.tags?.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {task.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="px-2 py-0.5 rounded-md text-[10px] font-medium"
+                                style={{
+                                  backgroundColor: 'var(--bg-hover)',
+                                  color: 'var(--text-secondary)',
+                                }}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+                          <span>Excluída em {formatDateTime(task.deletedAt!)}</span>
+                          <div className="flex items-center gap-1">
+                            {isUrgent && <AlertTriangle size={12} style={{ color: 'var(--danger)' }} />}
+                            <span style={{ color: isUrgent ? 'var(--danger)' : undefined, fontWeight: isUrgent ? 600 : undefined }}>
+                              {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Actions */}
-                    <div className="flex gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => onRestore(task.id)}
-                        className="p-2 hover:bg-[var(--bg-card)] rounded-lg transition-colors text-[var(--text-secondary)] hover:text-[var(--accent)]"
-                        title="Restaurar"
-                        aria-label="Restaurar"
-                      >
-                        <RotateCcw size={18} />
-                      </button>
-                      <button
-                        onClick={() => handlePermanentDelete(task.id)}
-                        className={`p-2 rounded-lg transition-colors ${
-                          confirmingDeleteId === task.id
-                            ? 'bg-[#ef4444] text-white'
-                            : 'hover:bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[#ef4444]'
-                        }`}
-                        title={
-                          confirmingDeleteId === task.id
-                            ? 'Confirmar exclusão'
-                            : 'Excluir permanentemente'
-                        }
-                        aria-label={
-                          confirmingDeleteId === task.id
-                            ? 'Confirmar exclusão'
-                            : 'Excluir permanentemente'
-                        }
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        <button
+                          onClick={() => onRestore(task.id)}
+                          className="p-2 rounded-lg transition-colors hover:bg-[var(--bg-hover)]"
+                          style={{ color: 'var(--accent)' }}
+                          title="Restaurar"
+                        >
+                          <RotateCcw size={16} />
+                        </button>
+                        <button
+                          onClick={() => handlePermanentDelete(task.id)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            confirmingDeleteId === task.id ? 'text-white' : 'hover:bg-[var(--danger-light)]'
+                          }`}
+                          style={{
+                            backgroundColor: confirmingDeleteId === task.id ? 'var(--danger)' : undefined,
+                            color: confirmingDeleteId === task.id ? 'white' : 'var(--danger)',
+                          }}
+                          title={confirmingDeleteId === task.id ? 'Confirmar' : 'Excluir'}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-[var(--border-color)] flex justify-between">
-          <button
-            onClick={handleEmptyTrash}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              emptyConfirmation
-                ? 'bg-[#ef4444] text-white hover:bg-[#dc2626]'
-                : 'bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--border-color)]'
-            }`}
+        {sortedTasks.length > 0 && (
+          <div
+            className="px-6 py-4 border-t flex justify-between"
+            style={{ borderColor: 'var(--border-color)' }}
           >
-            {emptyConfirmation ? 'Tem certeza?' : 'Esvaziar lixeira'}
-          </button>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg font-medium bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--border-color)] transition-colors"
-          >
-            Fechar
-          </button>
-        </div>
+            <button
+              onClick={handleEmptyTrash}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{
+                backgroundColor: emptyConfirmation ? 'var(--danger)' : 'var(--bg-hover)',
+                color: emptyConfirmation ? 'white' : 'var(--text-primary)',
+              }}
+            >
+              {emptyConfirmation ? 'Tem certeza?' : 'Esvaziar lixeira'}
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{
+                backgroundColor: 'var(--bg-hover)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              Fechar
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

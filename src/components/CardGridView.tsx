@@ -22,36 +22,28 @@ interface CardGridViewProps {
 }
 
 const LEVERAGE_ICON_MAP: Record<string, React.ReactNode> = {
-  code: <Code2 size={16} />,
-  documentation: <FileText size={16} />,
-  team: <Users size={16} />,
-  revenue: <DollarSign size={16} />,
+  code: <Code2 size={14} />,
+  documentation: <FileText size={14} />,
+  team: <Users size={14} />,
+  revenue: <DollarSign size={14} />,
 };
 
 export default function CardGridView({
   tasks,
-  settings,
   onEditTask,
   onCompleteTask,
-  onDeleteTask,
-  onUpdateTask,
 }: CardGridViewProps) {
-  const sortedTasks = useMemo(() => {
-    return sortByScore([...tasks]);
-  }, [tasks]);
+  const sortedTasks = useMemo(() => sortByScore([...tasks]), [tasks]);
 
   return (
-    <div className="w-full h-full overflow-auto p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-max">
+    <div className="w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {sortedTasks.map((task) => (
-          <TaskCard
+          <GridCard
             key={task.id}
             task={task}
-            settings={settings}
             onEditTask={onEditTask}
             onCompleteTask={onCompleteTask}
-            onDeleteTask={onDeleteTask}
-            onUpdateTask={onUpdateTask}
           />
         ))}
       </div>
@@ -59,55 +51,37 @@ export default function CardGridView({
   );
 }
 
-interface TaskCardProps {
+interface GridCardProps {
   task: Task;
-  settings: UserSettings;
   onEditTask: (task: Task) => void;
   onCompleteTask: (id: string) => void;
-  onDeleteTask: (id: string) => void;
-  onUpdateTask: (id: string, updates: Partial<Task>) => void;
 }
 
-function TaskCard({
-  task,
-  onEditTask,
-  onCompleteTask,
-}: TaskCardProps) {
+function GridCard({ task, onEditTask, onCompleteTask }: GridCardProps) {
   const scoreColor = getScoreColor(task.priorityScore);
   const activeDimensions = (Object.keys(DIMENSION_MAP) as DimensionKey[]).filter(
     (dim) => task.dimensions[dim] && task.dimensions[dim] > 0
   );
-
-  const activeLeverages = LEVERAGE_OPTIONS.filter((leverage) =>
-    task.leverages.includes(leverage.value)
+  const activeLeverages = LEVERAGE_OPTIONS.filter((l) =>
+    task.leverages.includes(l.value)
   );
-
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Only open edit modal if not clicking on action buttons
-    if ((e.target as HTMLElement).closest('button')) {
-      return;
-    }
-    onEditTask(task);
-  };
 
   return (
     <div
-      onClick={handleCardClick}
-      className="bg-card border border-border-color rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer flex flex-col h-full"
+      onClick={() => onEditTask(task)}
+      className="rounded-xl border overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col h-full group"
       style={{
         backgroundColor: 'var(--bg-card)',
         borderColor: 'var(--border-color)',
+        boxShadow: 'var(--shadow-sm)',
       }}
     >
-      {/* Color Bar */}
-      <div
-        className="h-1"
-        style={{ backgroundColor: scoreColor }}
-      />
+      {/* Accent Bar */}
+      <div className="h-1" style={{ backgroundColor: scoreColor }} />
 
-      {/* Card Content */}
+      {/* Content */}
       <div className="p-4 flex flex-col gap-3 flex-1">
-        {/* Title and Description */}
+        {/* Title */}
         <div>
           <h3
             className="font-semibold text-sm truncate"
@@ -117,176 +91,115 @@ function TaskCard({
             {task.title}
           </h3>
           {task.description && (
-            <p
-              className="text-xs mt-1 line-clamp-2"
-              style={{ color: 'var(--text-secondary)' }}
-            >
+            <p className="text-xs mt-1 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
               {truncate(task.description, 100)}
             </p>
           )}
         </div>
 
-        {/* Score Section */}
+        {/* Score + Dimensions */}
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0">
-            <div
-              className="text-3xl font-bold text-center"
-              style={{ color: scoreColor }}
-            >
+            <div className="text-2xl font-bold" style={{ color: scoreColor }}>
               {Math.round(task.priorityScore)}
             </div>
           </div>
-          <div className="flex-1">
-            {/* Score Breakdown Bars */}
-            <div className="space-y-1">
-              {activeDimensions.slice(0, 10).map((dimension) => {
-                const dimensionScore = task.dimensions[dimension];
-                const dimensionInfo = DIMENSION_MAP[dimension];
-                const fillPercent = (dimensionScore / 10) * 100;
-
-                return (
-                  <div key={dimension} className="text-xs space-y-0.5">
+          <div className="flex-1 space-y-1">
+            {activeDimensions.slice(0, 5).map((dim) => {
+              const val = task.dimensions[dim];
+              const info = DIMENSION_MAP[dim];
+              return (
+                <div key={dim} className="flex items-center gap-2">
+                  <span className="text-[10px] w-14 truncate" style={{ color: 'var(--text-muted)' }}>
+                    {info.label}
+                  </span>
+                  <div
+                    className="flex-1 h-1 rounded-full overflow-hidden"
+                    style={{ backgroundColor: 'var(--bg-hover)' }}
+                  >
                     <div
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      {dimensionInfo.label}
-                    </div>
-                    <div
-                      className="h-1.5 rounded bg-border-color overflow-hidden"
-                      style={{ backgroundColor: 'var(--bg-hover)' }}
-                    >
-                      <div
-                        className="h-full transition-all"
-                        style={{
-                          width: `${fillPercent}%`,
-                          backgroundColor: scoreColor,
-                        }}
-                      />
-                    </div>
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${(val / 10) * 100}%`,
+                        backgroundColor: scoreColor,
+                      }}
+                    />
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Classification Badge */}
+        {/* Classification */}
         {task.classification && (
-          <div className="flex gap-2 flex-wrap">
-            <span
-              className="inline-block px-2 py-1 rounded text-xs font-medium"
-              style={{
-                backgroundColor: 'var(--bg-hover)',
-                color: 'var(--text-primary)',
-              }}
-            >
-              {task.classification}
-            </span>
-          </div>
+          <span
+            className="self-start px-2.5 py-1 rounded-md text-xs font-medium"
+            style={{
+              backgroundColor: 'var(--bg-hover)',
+              color: 'var(--text-primary)',
+            }}
+          >
+            {task.classification}
+          </span>
         )}
 
         {/* Tags */}
-        {task.tags && task.tags.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
+        {task.tags?.length > 0 && (
+          <div className="flex gap-1.5 flex-wrap">
             {task.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white"
-                style={{ backgroundColor: 'var(--accent)' }}
+                className="px-2 py-0.5 rounded-md text-[11px] font-medium"
+                style={{ backgroundColor: 'var(--accent-subtle)', color: 'var(--accent)' }}
               >
                 {tag}
               </span>
             ))}
             {task.tags.length > 3 && (
-              <span
-                className="inline-block px-2 py-1 text-xs font-medium"
-                style={{ color: 'var(--text-muted)' }}
-              >
+              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                 +{task.tags.length - 3}
               </span>
             )}
           </div>
         )}
 
-        {/* Leverage Icons */}
+        {/* Leverages */}
         {activeLeverages.length > 0 && (
-          <div className="flex gap-2">
-            {activeLeverages.map((leverage) => (
+          <div className="flex gap-1.5">
+            {activeLeverages.map((l) => (
               <div
-                key={leverage.value}
-                className="p-1.5 rounded"
-                style={{
-                  backgroundColor: 'var(--bg-hover)',
-                  color: 'var(--accent)',
-                }}
-                title={leverage.label}
+                key={l.value}
+                className="p-1.5 rounded-md"
+                style={{ backgroundColor: 'var(--accent-subtle)', color: 'var(--accent)' }}
+                title={l.label}
               >
-                {LEVERAGE_ICON_MAP[leverage.value]}
+                {LEVERAGE_ICON_MAP[l.value] || <Code2 size={14} />}
               </div>
             ))}
           </div>
         )}
-
-        {/* Notes Preview */}
-        {task.notes && (
-          <p
-            className="text-xs line-clamp-2"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            {task.notes}
-          </p>
-        )}
       </div>
 
-      {/* Action Buttons */}
+      {/* Actions */}
       <div
-        className="flex gap-2 p-4 border-t"
+        className="flex gap-2 p-3 border-t"
         style={{ borderColor: 'var(--border-color)' }}
       >
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onCompleteTask(task.id);
-          }}
-          className="flex-1 flex items-center justify-center gap-2 py-2 rounded text-sm font-medium transition-colors"
-          style={{
-            backgroundColor: 'var(--bg-hover)',
-            color: 'var(--accent)',
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.backgroundColor =
-              'var(--border-color)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.backgroundColor =
-              'var(--bg-hover)';
-          }}
-          title="Marcar como concluído"
+          onClick={(e) => { e.stopPropagation(); onCompleteTask(task.id); }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
+          style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--success)' }}
         >
-          <CheckCircle2 size={16} />
+          <CheckCircle2 size={14} />
           <span className="hidden sm:inline">Concluir</span>
         </button>
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEditTask(task);
-          }}
-          className="flex-1 flex items-center justify-center gap-2 py-2 rounded text-sm font-medium transition-colors"
-          style={{
-            backgroundColor: 'var(--bg-hover)',
-            color: 'var(--accent)',
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.backgroundColor =
-              'var(--border-color)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.backgroundColor =
-              'var(--bg-hover)';
-          }}
-          title="Editar tarefa"
+          onClick={(e) => { e.stopPropagation(); onEditTask(task); }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-colors"
+          style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--accent)' }}
         >
-          <Pencil size={16} />
+          <Pencil size={14} />
           <span className="hidden sm:inline">Editar</span>
         </button>
       </div>

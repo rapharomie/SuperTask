@@ -11,14 +11,13 @@ interface KanbanViewProps {
   onUpdateTask: (id: string, updates: Partial<Task>) => void;
 }
 
-// Column border colors - subtle but distinct per column
-const COLUMN_BORDER_COLORS = [
-  '#ff6b6b', // red
-  '#f97316', // orange
-  '#fbbf24', // amber
-  '#34d399', // emerald
-  '#60a5fa', // blue
-  '#a78bfa', // violet
+const COLUMN_ACCENT_COLORS = [
+  '#ef4444',
+  '#f97316',
+  '#eab308',
+  '#22c55e',
+  '#3b82f6',
+  '#8b5cf6',
 ];
 
 export default function KanbanView({
@@ -30,108 +29,105 @@ export default function KanbanView({
   onUpdateTask,
 }: KanbanViewProps) {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [mobileTabIndex, setMobileTabIndex] = useState(0);
 
-  // Get classifications from settings, fallback to defaults
   const classifications = useMemo(
     () =>
-      settings.classifications && settings.classifications.length > 0
+      settings.classifications?.length > 0
         ? settings.classifications
         : ['Faz agora', 'Agenda', 'Delega', 'Backlog', 'Esperando'],
     [settings.classifications]
   );
 
-  // Group tasks by classification
   const tasksByClassification = useMemo(() => {
     const grouped: Record<string, Task[]> = {};
-
-    classifications.forEach((classification) => {
-      grouped[classification] = tasks
-        .filter(
-          (task) =>
-            task.classification === classification &&
-            !task.deletedAt &&
-            (task.status !== 'concluída' || task.status === 'concluída')
-        )
+    classifications.forEach((c) => {
+      grouped[c] = tasks
+        .filter((t) => t.classification === c && !t.deletedAt)
         .sort((a, b) => b.priorityScore - a.priorityScore);
     });
-
     return grouped;
   }, [tasks, classifications]);
 
-
-  // Handle drag start
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, task: Task) => {
     setDraggedTask(task);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('application/json', JSON.stringify(task));
   };
 
-  // Handle drag over
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, classification: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    setDragOverColumn(classification);
   };
 
-  // Handle drop on column
-  const handleDropOnColumn = (e: React.DragEvent<HTMLDivElement>, classification: string) => {
+  const handleDragLeave = () => {
+    setDragOverColumn(null);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, classification: string) => {
     e.preventDefault();
-
-    if (!draggedTask) return;
-
-    if (draggedTask.classification !== classification) {
+    setDragOverColumn(null);
+    if (draggedTask && draggedTask.classification !== classification) {
       onUpdateTask(draggedTask.id, { classification });
     }
-
     setDraggedTask(null);
   };
 
-  // Render a single column
   const renderColumn = (classification: string, index: number) => {
     const columnTasks = tasksByClassification[classification] || [];
-    const borderColor = COLUMN_BORDER_COLORS[index % COLUMN_BORDER_COLORS.length];
+    const accentColor = COLUMN_ACCENT_COLORS[index % COLUMN_ACCENT_COLORS.length];
+    const isDragOver = dragOverColumn === classification;
 
     return (
       <div
         key={classification}
-        className="flex flex-col flex-shrink-0 bg-[var(--bg-secondary)] rounded-lg overflow-hidden"
+        className="flex flex-col flex-shrink-0 rounded-xl overflow-hidden transition-all duration-200"
         style={{
-          width: 'min(100%, 320px)',
-          borderLeftWidth: '4px',
-          borderLeftColor: borderColor,
+          width: 'min(100%, 310px)',
+          backgroundColor: 'var(--bg-card)',
+          border: `1px solid ${isDragOver ? accentColor : 'var(--border-color)'}`,
+          boxShadow: isDragOver ? `0 0 0 2px ${accentColor}30` : 'var(--shadow-sm)',
         }}
       >
         {/* Column Header */}
         <div
-          className="px-4 py-3 border-b"
+          className="px-4 py-3 border-b flex items-center justify-between"
           style={{ borderColor: 'var(--border-color)' }}
         >
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="font-semibold text-sm text-[var(--text-primary)]">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ backgroundColor: accentColor }}
+            />
+            <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
               {classification}
             </h3>
-            <span
-              className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
-              style={{
-                backgroundColor: 'var(--accent)',
-                color: 'white',
-              }}
-            >
-              {columnTasks.length}
-            </span>
           </div>
+          <span
+            className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+            style={{
+              backgroundColor: 'var(--bg-hover)',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            {columnTasks.length}
+          </span>
         </div>
 
-        {/* Column Content - Droppable Area */}
+        {/* Column Body */}
         <div
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDropOnColumn(e, classification)}
-          className="flex-1 overflow-y-auto p-3 space-y-3 min-h-[500px]"
+          onDragOver={(e) => handleDragOver(e, classification)}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, classification)}
+          className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-[400px]"
+          style={{ backgroundColor: isDragOver ? 'var(--bg-hover)' : undefined }}
         >
           {columnTasks.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-center">
-              <p className="text-xs text-[var(--text-secondary)]">
-                Nenhuma tarefa
+            <div className="flex items-center justify-center h-24">
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                Arraste tarefas aqui
               </p>
             </div>
           ) : (
@@ -140,10 +136,8 @@ export default function KanbanView({
                 key={task.id}
                 draggable
                 onDragStart={(e) => handleDragStart(e, task)}
-                onDragEnd={() => setDraggedTask(null)}
-                className={`transition-opacity ${
-                  draggedTask?.id === task.id ? 'opacity-50' : 'opacity-100'
-                }`}
+                onDragEnd={() => { setDraggedTask(null); setDragOverColumn(null); }}
+                className={`transition-opacity ${draggedTask?.id === task.id ? 'opacity-40' : ''}`}
               >
                 <TaskCard
                   task={task}
@@ -151,12 +145,8 @@ export default function KanbanView({
                   onEdit={onEditTask}
                   onComplete={onCompleteTask}
                   onDelete={onDeleteTask}
-                  onClassificationChange={(id, classification) =>
-                    onUpdateTask(id, { classification })
-                  }
-                  onStatusChange={(id, status) =>
-                    onUpdateTask(id, { status })
-                  }
+                  onClassificationChange={(id, c) => onUpdateTask(id, { classification: c })}
+                  onStatusChange={(id, s) => onUpdateTask(id, { status: s })}
                   settings={settings}
                 />
               </div>
@@ -169,43 +159,44 @@ export default function KanbanView({
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
-  // Mobile View - Tabs
   if (isMobile) {
     const activeClassification = classifications[mobileTabIndex];
     const columnTasks = tasksByClassification[activeClassification] || [];
 
     return (
-      <div className="flex flex-col h-full bg-[var(--bg-primary)]">
-        {/* Tab Navigation */}
+      <div className="flex flex-col h-full">
+        {/* Tabs */}
         <div
-          className="border-b overflow-x-auto scrollbar-hide"
+          className="border-b overflow-x-auto mb-4"
           style={{ borderColor: 'var(--border-color)' }}
         >
           <div className="flex gap-0">
-            {classifications.map((classification, index) => (
+            {classifications.map((c, i) => (
               <button
-                key={classification}
-                onClick={() => setMobileTabIndex(index)}
-                className={`flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  index === mobileTabIndex
+                key={c}
+                onClick={() => setMobileTabIndex(i)}
+                className={`flex-shrink-0 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors ${
+                  i === mobileTabIndex
                     ? 'border-[var(--accent)] text-[var(--accent)]'
                     : 'border-transparent text-[var(--text-secondary)]'
                 }`}
               >
-                {classification}
-                <span className="ml-2 text-xs bg-[var(--bg-secondary)] px-2 py-0.5 rounded-full">
-                  {(tasksByClassification[classification] || []).length}
+                {c}
+                <span
+                  className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'var(--bg-hover)' }}
+                >
+                  {(tasksByClassification[c] || []).length}
                 </span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Column Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 space-y-2.5">
           {columnTasks.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-center">
-              <p className="text-sm text-[var(--text-secondary)]">
+            <div className="flex items-center justify-center h-32">
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                 Nenhuma tarefa
               </p>
             </div>
@@ -218,12 +209,8 @@ export default function KanbanView({
                 onEdit={onEditTask}
                 onComplete={onCompleteTask}
                 onDelete={onDeleteTask}
-                onClassificationChange={(id, classification) =>
-                  onUpdateTask(id, { classification })
-                }
-                onStatusChange={(id, status) =>
-                  onUpdateTask(id, { status })
-                }
+                onClassificationChange={(id, c) => onUpdateTask(id, { classification: c })}
+                onStatusChange={(id, s) => onUpdateTask(id, { status: s })}
                 settings={settings}
               />
             ))
@@ -233,16 +220,13 @@ export default function KanbanView({
     );
   }
 
-  // Tablet/Desktop View - Horizontal Scroll
   return (
     <div
-      className="overflow-x-auto overflow-y-hidden p-4 bg-[var(--bg-primary)]"
+      className="overflow-x-auto overflow-y-hidden"
       style={{ height: 'calc(100vh - 200px)' }}
     >
       <div className="flex gap-4 pb-4">
-        {classifications.map((classification, index) =>
-          renderColumn(classification, index)
-        )}
+        {classifications.map((c, i) => renderColumn(c, i))}
       </div>
     </div>
   );

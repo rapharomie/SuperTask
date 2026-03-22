@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  ChevronDown,
-  ChevronUp,
+  ChevronRight,
   CheckCircle2,
   Pencil,
   Trash2,
@@ -39,33 +38,33 @@ export default function ListView({
 
   const sortedTasks = useMemo(() => {
     const sorted = [...tasks];
-
     switch (sortBy) {
       case 'score':
         return sortByScore(sorted);
       case 'date':
-        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return sorted.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       case 'classification':
-        return sorted.sort((a, b) => {
-          const classA = a.classification || '';
-          const classB = b.classification || '';
-          return classA.localeCompare(classB);
-        });
+        return sorted.sort((a, b) =>
+          (a.classification || '').localeCompare(b.classification || '')
+        );
       default:
         return sorted;
     }
   }, [tasks, sortBy]);
 
-  const getStatusBadgeColor = (status: TaskStatus): string => {
+  const getStatusStyle = (status: TaskStatus) => {
     switch (status) {
       case 'concluída':
-        return 'bg-green-900 text-green-200';
+        return { bg: 'var(--success-light)', color: 'var(--success)' };
       case 'em_andamento':
-        return 'bg-blue-900 text-blue-200';
+        return { bg: 'var(--info-light)', color: 'var(--info)' };
       case 'cancelada':
-        return 'bg-red-900 text-red-200';
+        return { bg: 'var(--danger-light)', color: 'var(--danger)' };
       default:
-        return 'bg-gray-700 text-gray-200';
+        return { bg: 'var(--bg-hover)', color: 'var(--text-secondary)' };
     }
   };
 
@@ -74,34 +73,25 @@ export default function ListView({
     return option?.label || status;
   };
 
-  const getClassificationBadgeColor = (classification: string | undefined): string => {
-    if (!classification) return 'bg-gray-700 text-gray-200';
-
-    const normalized = classification.toLowerCase();
-    if (normalized.includes('epic')) return 'bg-purple-900 text-purple-200';
-    if (normalized.includes('feature')) return 'bg-blue-900 text-blue-200';
-    if (normalized.includes('bug')) return 'bg-red-900 text-red-200';
-    if (normalized.includes('task')) return 'bg-gray-700 text-gray-200';
-    return 'bg-gray-700 text-gray-200';
-  };
-
   const renderLeverageIcon = (leverage: string) => {
     const iconKey = leverage.toLowerCase().replace(/\s+/g, '_');
     let IconComponent = Code2;
-
-    if (iconKey.includes('code')) IconComponent = Code2;
-    else if (iconKey.includes('documentation') || iconKey.includes('doc')) IconComponent = FileText;
-    else if (iconKey.includes('team') || iconKey.includes('people')) IconComponent = Users;
-    else if (iconKey.includes('funding') || iconKey.includes('money') || iconKey.includes('financial'))
-      IconComponent = DollarSign;
+    if (iconKey.includes('code') || iconKey.includes('cód')) IconComponent = Code2;
+    else if (iconKey.includes('cont') || iconKey.includes('doc')) IconComponent = FileText;
+    else if (iconKey.includes('pess') || iconKey.includes('team')) IconComponent = Users;
+    else if (iconKey.includes('dinh') || iconKey.includes('money')) IconComponent = DollarSign;
 
     return (
       <div
         key={leverage}
-        className="flex items-center justify-center w-6 h-6 rounded bg-orange-900 text-orange-300"
+        className="flex items-center justify-center w-7 h-7 rounded-md"
+        style={{
+          backgroundColor: 'var(--accent-subtle)',
+          color: 'var(--accent)',
+        }}
         title={leverage}
       >
-        <IconComponent size={16} />
+        <IconComponent size={14} />
       </div>
     );
   };
@@ -109,67 +99,82 @@ export default function ListView({
   const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
-    <div className="w-full bg-var(--bg-primary) text-var(--text-primary)">
+    <div className="w-full">
       {/* Sort Controls */}
-      <div className="mb-6 flex items-center gap-3 flex-wrap">
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <ArrowUpDown size={18} className="text-var(--accent)" />
-          <span className="text-sm font-medium text-var(--text-secondary)">Ordenar por:</span>
+          <ArrowUpDown size={16} style={{ color: 'var(--accent)' }} />
+          <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+            Ordenar:
+          </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           {(['score', 'date', 'classification'] as const).map((option) => (
             <button
               key={option}
               onClick={() => setSortBy(option)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                sortBy === option
-                  ? 'bg-var(--accent) text-var(--bg-primary) shadow-lg'
-                  : 'bg-var(--bg-card) text-var(--text-primary) hover:bg-var(--bg-hover)'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border`}
+              style={{
+                backgroundColor: sortBy === option ? 'var(--accent)' : 'var(--bg-card)',
+                color: sortBy === option ? 'white' : 'var(--text-secondary)',
+                borderColor: sortBy === option ? 'var(--accent)' : 'var(--border-color)',
+              }}
             >
               {option === 'score' && 'Pontuação'}
-              {option === 'date' && 'Data de Criação'}
+              {option === 'date' && 'Data'}
               {option === 'classification' && 'Classificação'}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Table Container */}
-      <div className="overflow-x-auto rounded-lg border border-var(--border-color) bg-var(--bg-card)">
+      {/* Table */}
+      <div
+        className="overflow-x-auto rounded-xl border"
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          borderColor: 'var(--border-color)',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
         <table className="w-full">
           <thead>
-            <tr className="border-b border-var(--border-color) bg-var(--bg-hover)">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-var(--text-secondary) w-12">
+            <tr
+              className="border-b"
+              style={{ borderColor: 'var(--border-color)' }}
+            >
+              <th
+                className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider w-12"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 #
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-var(--text-secondary) min-w-[200px]">
+              <th
+                className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider min-w-[200px]"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 Título
               </th>
               {!isSmallScreen && (
                 <>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-var(--text-secondary) w-20">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider w-24" style={{ color: 'var(--text-muted)' }}>
                     Score
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-var(--text-secondary) w-28">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider w-32" style={{ color: 'var(--text-muted)' }}>
                     Classificação
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider w-40" style={{ color: 'var(--text-muted)' }}>
+                    Tags
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider w-32" style={{ color: 'var(--text-muted)' }}>
+                    Alavancas
                   </th>
                 </>
               )}
-              {!isSmallScreen && (
-                <th className="px-4 py-3 text-left text-xs font-semibold text-var(--text-secondary) w-40">
-                  Tags
-                </th>
-              )}
-              {!isSmallScreen && (
-                <th className="px-4 py-3 text-left text-xs font-semibold text-var(--text-secondary) w-32">
-                  Alavancas
-                </th>
-              )}
-              <th className="px-4 py-3 text-left text-xs font-semibold text-var(--text-secondary) w-28">
+              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider w-28" style={{ color: 'var(--text-muted)' }}>
                 Status
               </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-var(--text-secondary) w-20">
+              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider w-24" style={{ color: 'var(--text-muted)' }}>
                 Ações
               </th>
             </tr>
@@ -179,7 +184,8 @@ export default function ListView({
               <tr>
                 <td
                   colSpan={isSmallScreen ? 4 : 8}
-                  className="px-4 py-8 text-center text-var(--text-muted)"
+                  className="px-4 py-12 text-center text-sm"
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   Nenhuma tarefa encontrada.
                 </td>
@@ -188,27 +194,31 @@ export default function ListView({
               sortedTasks.map((task, index) => (
                 <React.Fragment key={task.id}>
                   <tr
-                    className={`border-b border-var(--border-color) transition-colors ${
-                      index % 2 === 0 ? 'bg-var(--bg-primary)' : 'bg-var(--bg-hover)'
-                    } hover:bg-opacity-75 cursor-pointer`}
+                    className="border-b transition-colors cursor-pointer hover:bg-[var(--bg-hover)]"
+                    style={{ borderColor: 'var(--border-light)' }}
                     onClick={() =>
                       setExpandedId(expandedId === task.id ? null : task.id)
                     }
                   >
-                    {/* Position */}
-                    <td className="px-4 py-3 text-sm font-medium text-var(--text-secondary)">
-                      {index + 1}
+                    {/* # */}
+                    <td className="px-4 py-3.5">
+                      <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+                        {index + 1}
+                      </span>
                     </td>
 
                     {/* Title */}
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
-                        {expandedId === task.id ? (
-                          <ChevronUp size={18} className="text-var(--accent)" />
-                        ) : (
-                          <ChevronDown size={18} className="text-var(--text-muted)" />
-                        )}
-                        <span className="text-sm font-medium text-var(--text-primary) truncate">
+                        <ChevronRight
+                          size={14}
+                          className={`transition-transform ${expandedId === task.id ? 'rotate-90' : ''}`}
+                          style={{ color: expandedId === task.id ? 'var(--accent)' : 'var(--text-muted)' }}
+                        />
+                        <span
+                          className="text-sm font-medium truncate"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
                           {task.title}
                         </span>
                       </div>
@@ -216,14 +226,20 @@ export default function ListView({
 
                     {/* Score */}
                     {!isSmallScreen && (
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-var(--accent)">
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white"
+                            style={{ backgroundColor: getScoreColor(task.priorityScore) }}
+                          >
                             {Math.round(task.priorityScore)}
-                          </span>
-                          <div className="w-12 h-2 bg-var(--bg-primary) rounded-full overflow-hidden border border-var(--border-color)">
+                          </div>
+                          <div
+                            className="w-16 h-1.5 rounded-full overflow-hidden"
+                            style={{ backgroundColor: 'var(--bg-hover)' }}
+                          >
                             <div
-                              className="h-full transition-all"
+                              className="h-full rounded-full transition-all"
                               style={{
                                 width: `${Math.min(task.priorityScore, 100)}%`,
                                 backgroundColor: getScoreColor(task.priorityScore),
@@ -236,130 +252,145 @@ export default function ListView({
 
                     {/* Classification */}
                     {!isSmallScreen && (
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5">
                         <span
-                          className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getClassificationBadgeColor(
-                            task.classification
-                          )}`}
+                          className="inline-block px-2.5 py-1 rounded-md text-xs font-medium"
+                          style={{
+                            backgroundColor: 'var(--bg-hover)',
+                            color: 'var(--text-primary)',
+                          }}
                         >
-                          {task.classification || 'Sem classificação'}
+                          {task.classification || '—'}
                         </span>
                       </td>
                     )}
 
                     {/* Tags */}
                     {!isSmallScreen && (
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5">
                         <div className="flex flex-wrap gap-1">
-                          {task.tags && task.tags.length > 0 ? (
-                            task.tags.slice(0, 3).map((tag) => (
-                              <span
-                                key={tag}
-                                className="px-2 py-1 rounded-full text-xs bg-var(--bg-hover) text-var(--text-secondary) border border-var(--border-color)"
-                              >
-                                {tag}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-xs text-var(--text-muted)">Sem tags</span>
-                          )}
-                          {task.tags && task.tags.length > 3 && (
-                            <span className="text-xs text-var(--text-muted)">
-                              +{task.tags.length - 3}
+                          {task.tags?.slice(0, 2).map((tag) => (
+                            <span
+                              key={tag}
+                              className="px-2 py-0.5 rounded-md text-[11px] font-medium"
+                              style={{
+                                backgroundColor: 'var(--accent-subtle)',
+                                color: 'var(--accent)',
+                              }}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {task.tags && task.tags.length > 2 && (
+                            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                              +{task.tags.length - 2}
                             </span>
                           )}
                         </div>
                       </td>
                     )}
 
-                    {/* Leverage Icons */}
+                    {/* Leverages */}
                     {!isSmallScreen && (
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          {task.leverages && task.leverages.length > 0 ? (
-                            task.leverages.map((leverage: string) =>
-                              renderLeverageIcon(leverage)
-                            )
-                          ) : (
-                            <span className="text-xs text-var(--text-muted)">Nenhuma</span>
-                          )}
+                      <td className="px-4 py-3.5">
+                        <div className="flex gap-1.5">
+                          {task.leverages?.length > 0
+                            ? task.leverages.map((l) => renderLeverageIcon(l))
+                            : <span className="text-xs" style={{ color: 'var(--text-muted)' }}>—</span>}
                         </div>
                       </td>
                     )}
 
                     {/* Status */}
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(
-                          task.status
-                        )}`}
-                      >
-                        {getStatusLabel(task.status)}
-                      </span>
+                    <td className="px-4 py-3.5">
+                      {(() => {
+                        const style = getStatusStyle(task.status);
+                        return (
+                          <span
+                            className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                            style={{
+                              backgroundColor: style.bg,
+                              color: style.color,
+                            }}
+                          >
+                            <span
+                              className="w-1.5 h-1.5 rounded-full mr-1.5"
+                              style={{ backgroundColor: style.color }}
+                            />
+                            {getStatusLabel(task.status)}
+                          </span>
+                        );
+                      })()}
                     </td>
 
                     {/* Actions */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center justify-end gap-1">
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditTask(task);
-                          }}
-                          className="p-1.5 hover:bg-var(--bg-hover) rounded transition-colors text-var(--text-secondary) hover:text-var(--accent)"
-                          title="Editar tarefa"
+                          onClick={(e) => { e.stopPropagation(); onEditTask(task); }}
+                          className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-hover)]"
+                          style={{ color: 'var(--text-muted)' }}
+                          title="Editar"
                         >
-                          <Pencil size={16} />
+                          <Pencil size={15} />
                         </button>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onCompleteTask(task.id);
-                          }}
-                          className="p-1.5 hover:bg-var(--bg-hover) rounded transition-colors text-var(--text-secondary) hover:text-green-400"
-                          title="Marcar como concluída"
+                          onClick={(e) => { e.stopPropagation(); onCompleteTask(task.id); }}
+                          className="p-1.5 rounded-md transition-colors hover:bg-[var(--success-light)]"
+                          style={{ color: 'var(--success)' }}
+                          title="Concluir"
                         >
-                          <CheckCircle2 size={16} />
+                          <CheckCircle2 size={15} />
                         </button>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteTask(task.id);
-                          }}
-                          className="p-1.5 hover:bg-var(--bg-hover) rounded transition-colors text-var(--text-secondary) hover:text-red-400"
-                          title="Deletar tarefa"
+                          onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
+                          className="p-1.5 rounded-md transition-colors hover:bg-[var(--danger-light)]"
+                          style={{ color: 'var(--danger)' }}
+                          title="Excluir"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     </td>
                   </tr>
 
-                  {/* Expanded Row - Score Breakdown */}
+                  {/* Expanded Detail */}
                   {expandedId === task.id && (
-                    <tr className={index % 2 === 0 ? 'bg-var(--bg-primary)' : 'bg-var(--bg-hover)'}>
-                      <td colSpan={isSmallScreen ? 4 : 8} className="px-4 py-4">
-                        <div className="pl-8 border-l-2 border-var(--accent)">
-                          <h4 className="text-sm font-semibold text-var(--text-primary) mb-4">
-                            Análise Detalhada
-                          </h4>
-                          <ScoreBreakdown
-                            dimensions={task.dimensions}
-                            priorityScore={task.priorityScore}
-                            compact={true}
-                          />
-                          {task.description && (
-                            <div className="mt-4">
-                              <p className="text-xs font-semibold text-var(--text-secondary) mb-2">
-                                Descrição:
-                              </p>
-                              <p className="text-sm text-var(--text-primary) line-clamp-3">
-                                {task.description}
-                              </p>
+                    <tr>
+                      <td colSpan={isSmallScreen ? 4 : 8}>
+                        <div
+                          className="px-6 py-5 border-b animate-fadeIn"
+                          style={{
+                            backgroundColor: 'var(--bg-primary)',
+                            borderColor: 'var(--border-light)',
+                          }}
+                        >
+                          <div
+                            className="pl-6 border-l-2"
+                            style={{ borderColor: 'var(--accent)' }}
+                          >
+                            <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
+                              Análise Detalhada
+                            </h4>
+                            <ScoreBreakdown
+                              dimensions={task.dimensions}
+                              priorityScore={task.priorityScore}
+                              compact={true}
+                            />
+                            {task.description && (
+                              <div className="mt-3">
+                                <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>
+                                  Descrição:
+                                </p>
+                                <p className="text-sm line-clamp-3" style={{ color: 'var(--text-primary)' }}>
+                                  {task.description}
+                                </p>
+                              </div>
+                            )}
+                            <div className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+                              Criado em {formatDate(task.createdAt)}
+                              {task.updatedAt && ` · Atualizado em ${formatDate(task.updatedAt)}`}
                             </div>
-                          )}
-                          <div className="mt-4 text-xs text-var(--text-muted)">
-                            Criado em {formatDate(task.createdAt)} {task.updatedAt && `· Atualizado em ${formatDate(task.updatedAt)}`}
                           </div>
                         </div>
                       </td>
@@ -373,19 +404,21 @@ export default function ListView({
       </div>
 
       {/* Stats Footer */}
-      <div className="mt-4 px-4 py-3 bg-var(--bg-card) rounded-lg border border-var(--border-color) text-xs text-var(--text-muted)">
-        <div className="flex justify-between">
-          <span>Total de tarefas: {tasks.length}</span>
-          <span>
-            Pontuação média:{' '}
-            {tasks.length > 0
-              ? Math.round(
-                  tasks.reduce((sum, t) => sum + t.priorityScore, 0) /
-                    tasks.length
-                )
-              : 0}
-          </span>
-        </div>
+      <div
+        className="mt-3 px-4 py-2.5 rounded-lg text-xs flex justify-between"
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          color: 'var(--text-muted)',
+          border: '1px solid var(--border-color)',
+        }}
+      >
+        <span>Total: {tasks.length}</span>
+        <span>
+          Média:{' '}
+          {tasks.length > 0
+            ? Math.round(tasks.reduce((s, t) => s + t.priorityScore, 0) / tasks.length)
+            : 0}
+        </span>
       </div>
     </div>
   );

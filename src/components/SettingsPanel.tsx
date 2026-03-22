@@ -37,20 +37,12 @@ export default function SettingsPanel({
   onToggleDimension,
   allTasks,
 }: SettingsPanelProps) {
-  const [activeTab, setActiveTab] = useState<
-    'dimensions' | 'tags' | 'classifications' | 'export' | 'clear'
-  >('dimensions');
+  const [activeTab, setActiveTab] = useState<'dimensions' | 'tags' | 'classifications' | 'export' | 'clear'>('dimensions');
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [editingTagName, setEditingTagName] = useState('');
-  const [editingTagColor, setEditingTagColor] = useState<TagColor>({
-    bg: '#f97316',
-    text: '#ffffff',
-  });
+  const [editingTagColor, setEditingTagColor] = useState<TagColor>({ bg: '#f97316', text: '#ffffff' });
   const [newTagName, setNewTagName] = useState('');
-  const [newTagColor, setNewTagColor] = useState<TagColor>({
-    bg: '#f97316',
-    text: '#ffffff',
-  });
+  const [newTagColor, setNewTagColor] = useState<TagColor>({ bg: '#f97316', text: '#ffffff' });
   const [editingClassification, setEditingClassification] = useState<string | null>(null);
   const [editingClassificationName, setEditingClassificationName] = useState('');
   const [newClassificationName, setNewClassificationName] = useState('');
@@ -59,11 +51,7 @@ export default function SettingsPanel({
 
   const handleAddTag = () => {
     if (newTagName.trim()) {
-      const updatedTags = [...(settings.tags || []), newTagName];
-      onUpdateTags(updatedTags);
-      if (!settings.tagColors) {
-        settings.tagColors = {};
-      }
+      onUpdateTags([...(settings.tags || []), newTagName]);
       onUpdateTagColor(newTagName, newTagColor);
       setNewTagName('');
       setNewTagColor({ bg: '#f97316', text: '#ffffff' });
@@ -71,25 +59,19 @@ export default function SettingsPanel({
   };
 
   const handleDeleteTag = (tag: string) => {
-    const updatedTags = (settings.tags || []).filter((t) => t !== tag);
-    onUpdateTags(updatedTags);
+    onUpdateTags((settings.tags || []).filter((t) => t !== tag));
     setDeleteConfirm(null);
   };
 
   const handleEditTag = (tag: string) => {
     setEditingTag(tag);
     setEditingTagName(tag);
-    setEditingTagColor(
-      settings.tagColors?.[tag] || { bg: '#f97316', text: '#ffffff' }
-    );
+    setEditingTagColor(settings.tagColors?.[tag] || { bg: '#f97316', text: '#ffffff' });
   };
 
   const handleSaveTagEdit = () => {
     if (editingTag && editingTagName.trim()) {
-      const updatedTags = (settings.tags || []).map((t) =>
-        t === editingTag ? editingTagName : t
-      );
-      onUpdateTags(updatedTags);
+      onUpdateTags((settings.tags || []).map((t) => t === editingTag ? editingTagName : t));
       onUpdateTagColor(editingTagName, editingTagColor);
       setEditingTag(null);
     }
@@ -97,162 +79,127 @@ export default function SettingsPanel({
 
   const handleAddClassification = () => {
     if (newClassificationName.trim()) {
-      const updatedClassifications = [
-        ...(settings.classifications || []),
-        newClassificationName,
-      ];
-      onUpdateClassifications(updatedClassifications);
+      onUpdateClassifications([...(settings.classifications || []), newClassificationName]);
       setNewClassificationName('');
     }
   };
 
-  const handleDeleteClassification = (classification: string) => {
-    const updatedClassifications = (settings.classifications || []).filter(
-      (c) => c !== classification
-    );
-    onUpdateClassifications(updatedClassifications);
+  const handleDeleteClassification = (c: string) => {
+    onUpdateClassifications((settings.classifications || []).filter((x) => x !== c));
     setDeleteConfirm(null);
   };
 
-  const handleEditClassification = (classification: string) => {
-    setEditingClassification(classification);
-    setEditingClassificationName(classification);
+  const handleEditClassification = (c: string) => {
+    setEditingClassification(c);
+    setEditingClassificationName(c);
   };
 
   const handleSaveClassificationEdit = () => {
     if (editingClassification && editingClassificationName.trim()) {
-      const updatedClassifications = (settings.classifications || []).map((c) =>
-        c === editingClassification ? editingClassificationName : c
-      );
-      onUpdateClassifications(updatedClassifications);
+      onUpdateClassifications((settings.classifications || []).map((c) => c === editingClassification ? editingClassificationName : c));
       setEditingClassification(null);
     }
   };
 
-  const handleMoveClassificationUp = (index: number) => {
-    if (index > 0) {
-      const classifications = [...(settings.classifications || [])];
-      [classifications[index], classifications[index - 1]] = [
-        classifications[index - 1],
-        classifications[index],
-      ];
-      onUpdateClassifications(classifications);
+  const handleMoveClassificationUp = (i: number) => {
+    if (i > 0) {
+      const arr = [...(settings.classifications || [])];
+      [arr[i], arr[i - 1]] = [arr[i - 1], arr[i]];
+      onUpdateClassifications(arr);
     }
   };
 
-  const handleMoveClassificationDown = (index: number) => {
-    const classifications = settings.classifications || [];
-    if (index < classifications.length - 1) {
-      const updatedClassifications = [...classifications];
-      [updatedClassifications[index], updatedClassifications[index + 1]] = [
-        updatedClassifications[index + 1],
-        updatedClassifications[index],
-      ];
-      onUpdateClassifications(updatedClassifications);
+  const handleMoveClassificationDown = (i: number) => {
+    const arr = settings.classifications || [];
+    if (i < arr.length - 1) {
+      const updated = [...arr];
+      [updated[i], updated[i + 1]] = [updated[i + 1], updated[i]];
+      onUpdateClassifications(updated);
     }
   };
 
   const handleExportData = () => {
-    const dataToExport = {
-      settings,
-      tasks: allTasks,
-      exportedAt: new Date().toISOString(),
-    };
-    const jsonString = JSON.stringify(dataToExport, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
+    const json = JSON.stringify({ settings, tasks: allTasks, exportedAt: new Date().toISOString() }, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `supertask-backup-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `supertask-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = (ev) => {
       try {
-        const content = e.target?.result as string;
-        const data = JSON.parse(content);
-        if (data.settings) {
-          // Import logic would be handled by parent component
-          console.log('Importing data:', data);
-        }
-      } catch (error) {
-        alert('Erro ao importar arquivo. Verifique o formato JSON.');
-      }
+        const data = JSON.parse(ev.target?.result as string);
+        if (data.settings) console.log('Importing:', data);
+      } catch { alert('Erro ao importar. Verifique o JSON.'); }
     };
     reader.readAsText(file);
   };
 
   const handleClearData = () => {
-    if (clearConfirmation === 0) {
-      setClearConfirmation(1);
-    } else if (clearConfirmation === 1) {
-      // Clear all data
-      onUpdateTags([]);
-      onUpdateClassifications([]);
-      setClearConfirmation(0);
-      onClose();
-    }
+    if (clearConfirmation === 0) setClearConfirmation(1);
+    else { onUpdateTags([]); onUpdateClassifications([]); setClearConfirmation(0); onClose(); }
   };
 
-  const getTasksUsingClassification = (classification: string) => {
-    return allTasks.filter((task) => task.classification === classification).length;
-  };
+  const getTasksUsingClassification = (c: string) => allTasks.filter((t) => t.classification === c).length;
 
   if (!isOpen) return null;
 
+  const tabs = [
+    { id: 'dimensions' as const, label: 'Dimensões' },
+    { id: 'tags' as const, label: 'Tags' },
+    { id: 'classifications' as const, label: 'Classificações' },
+    { id: 'export' as const, label: 'Dados' },
+    { id: 'clear' as const, label: 'Limpar' },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity duration-300">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-lg bg-[var(--bg-card)] shadow-2xl transition-all duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fadeIn">
+      <div
+        className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-xl shadow-2xl animate-slideIn"
+        style={{ backgroundColor: 'var(--bg-card)' }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-primary)] px-6 py-4">
+        <div
+          className="flex items-center justify-between border-b px-6 py-4"
+          style={{ borderColor: 'var(--border-color)' }}
+        >
           <div className="flex items-center gap-3">
-            <Settings className="h-6 w-6 text-[var(--accent)]" />
-            <h2 className="text-xl font-bold text-[var(--text-primary)]">
+            <div className="p-2 rounded-lg" style={{ backgroundColor: 'var(--accent-subtle)' }}>
+              <Settings className="h-5 w-5" style={{ color: 'var(--accent)' }} />
+            </div>
+            <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
               Configurações
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-2 hover:bg-[var(--bg-card)] transition-colors"
-          >
-            <X className="h-6 w-6 text-[var(--text-secondary)]" />
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors">
+            <X className="h-5 w-5" style={{ color: 'var(--text-muted)' }} />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-[var(--border-color)] bg-[var(--bg-primary)]">
-          {[
-            { id: 'dimensions', label: 'Dimensões' },
-            { id: 'tags', label: 'Tags' },
-            { id: 'classifications', label: 'Classificações' },
-            { id: 'export', label: 'Dados' },
-            { id: 'clear', label: 'Limpar' },
-          ].map((tab) => (
+        <div className="flex border-b" style={{ borderColor: 'var(--border-color)' }}>
+          {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() =>
-                setActiveTab(
-                  tab.id as
-                    | 'dimensions'
-                    | 'tags'
-                    | 'classifications'
-                    | 'export'
-                    | 'clear'
-                )
-              }
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 px-3 py-3 text-xs font-medium transition-colors ${
                 activeTab === tab.id
-                  ? 'border-b-2 border-[var(--accent)] text-[var(--accent)]'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  ? 'border-b-2'
+                  : ''
               }`}
+              style={{
+                borderColor: activeTab === tab.id ? 'var(--accent)' : 'transparent',
+                color: activeTab === tab.id ? 'var(--accent)' : 'var(--text-secondary)',
+              }}
             >
               {tab.label}
             </button>
@@ -260,465 +207,231 @@ export default function SettingsPanel({
         </div>
 
         {/* Content */}
-        <div className="max-h-[calc(90vh-140px)] overflow-y-auto bg-[var(--bg-card)]">
-          {/* Dimensões Tab */}
+        <div className="max-h-[calc(90vh-140px)] overflow-y-auto">
+          {/* Dimensions */}
           {activeTab === 'dimensions' && (
-            <div className="space-y-4 p-6">
-              <p className="text-sm text-[var(--text-secondary)]">
-                Ative ou desative as dimensões utilizadas no cálculo de pontuação.
+            <div className="space-y-3 p-6">
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                Ative ou desative dimensões no cálculo de pontuação.
               </p>
-              <div className="space-y-3">
-                {Object.entries(DIMENSION_MAP).map(([key, dimension]) => (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-4 hover:border-[var(--accent)] transition-colors"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-[var(--text-primary)]">
-                        {dimension.label}
-                      </p>
-                      <p className="text-xs text-[var(--text-muted)]">
-                        {dimension.inverted ? '(Invertida)' : '(Normal)'}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => onToggleDimension(key as DimensionKey)}
-                      className="rounded-lg p-2 hover:bg-[var(--bg-card)] transition-colors"
-                    >
-                      {settings.activeDimensions?.includes(key as DimensionKey) ? (
-                        <ToggleRight className="h-6 w-6 text-[var(--accent)]" />
-                      ) : (
-                        <ToggleLeft className="h-6 w-6 text-[var(--text-muted)]" />
-                      )}
-                    </button>
+              {Object.entries(DIMENSION_MAP).map(([key, dim]) => (
+                <div
+                  key={key}
+                  className="flex items-center justify-between rounded-lg border p-3.5 hover:border-[var(--accent)] transition-colors"
+                  style={{
+                    backgroundColor: 'var(--bg-primary)',
+                    borderColor: 'var(--border-color)',
+                  }}
+                >
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{dim.label}</p>
+                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      {dim.inverted ? '(Invertida)' : '(Normal)'}
+                    </p>
                   </div>
-                ))}
+                  <button onClick={() => onToggleDimension(key as DimensionKey)} className="p-1">
+                    {settings.activeDimensions?.includes(key as DimensionKey)
+                      ? <ToggleRight className="h-6 w-6" style={{ color: 'var(--accent)' }} />
+                      : <ToggleLeft className="h-6 w-6" style={{ color: 'var(--text-muted)' }} />}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Tags */}
+          {activeTab === 'tags' && (
+            <div className="space-y-3 p-6">
+              {(settings.tags || []).map((tag) => (
+                <div
+                  key={tag}
+                  className="flex items-center justify-between rounded-lg border p-3.5"
+                  style={{
+                    backgroundColor: 'var(--bg-primary)',
+                    borderColor: 'var(--border-color)',
+                  }}
+                >
+                  {editingTag === tag ? (
+                    <div className="flex-1 space-y-2">
+                      <input
+                        type="text"
+                        value={editingTagName}
+                        onChange={(e) => setEditingTagName(e.target.value)}
+                        className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]"
+                        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                      />
+                      <div className="flex gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Fundo:</span>
+                          <input type="color" value={editingTagColor.bg} onChange={(e) => setEditingTagColor({ ...editingTagColor, bg: e.target.value })} className="h-7 w-10 rounded cursor-pointer" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Texto:</span>
+                          <input type="color" value={editingTagColor.text} onChange={(e) => setEditingTagColor({ ...editingTagColor, text: e.target.value })} className="h-7 w-10 rounded cursor-pointer" />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={handleSaveTagEdit} className="flex-1 rounded-lg py-2 text-xs font-medium text-white" style={{ backgroundColor: 'var(--accent)' }}>Salvar</button>
+                        <button onClick={() => setEditingTag(null)} className="flex-1 rounded-lg py-2 text-xs font-medium border" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>Cancelar</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="h-5 w-5 rounded" style={{ backgroundColor: settings.tagColors?.[tag]?.bg || '#f97316' }} />
+                        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{tag}</span>
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => handleEditTag(tag)} className="p-1.5 rounded hover:bg-[var(--bg-hover)]">
+                          <Pencil className="h-3.5 w-3.5" style={{ color: 'var(--text-muted)' }} />
+                        </button>
+                        <button onClick={() => setDeleteConfirm(`tag-${tag}`)} className="p-1.5 rounded hover:bg-[var(--danger-light)]">
+                          <Trash2 className="h-3.5 w-3.5" style={{ color: 'var(--danger)' }} />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+
+              {deleteConfirm?.startsWith('tag-') && (
+                <div className="rounded-lg border p-3.5" style={{ borderColor: 'var(--danger)', backgroundColor: 'var(--danger-light)' }}>
+                  <p className="text-xs mb-2" style={{ color: 'var(--text-primary)' }}>Deletar tag?</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleDeleteTag(deleteConfirm.replace('tag-', ''))} className="flex-1 rounded-lg py-1.5 text-xs font-medium text-white" style={{ backgroundColor: 'var(--danger)' }}>Deletar</button>
+                    <button onClick={() => setDeleteConfirm(null)} className="flex-1 rounded-lg py-1.5 text-xs font-medium border" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>Cancelar</button>
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-lg border p-3.5 space-y-2" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }}>
+                <h4 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Nova tag</h4>
+                <input type="text" value={newTagName} onChange={(e) => setNewTagName(e.target.value)} placeholder="Nome" className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
+                <div className="flex gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Fundo:</span>
+                    <input type="color" value={newTagColor.bg} onChange={(e) => setNewTagColor({ ...newTagColor, bg: e.target.value })} className="h-7 w-10 rounded cursor-pointer" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Texto:</span>
+                    <input type="color" value={newTagColor.text} onChange={(e) => setNewTagColor({ ...newTagColor, text: e.target.value })} className="h-7 w-10 rounded cursor-pointer" />
+                  </div>
+                </div>
+                <button onClick={handleAddTag} className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-white" style={{ backgroundColor: 'var(--accent)' }}>
+                  <Plus className="h-4 w-4" /> Adicionar
+                </button>
               </div>
             </div>
           )}
 
-          {/* Tags Tab */}
-          {activeTab === 'tags' && (
-            <div className="space-y-4 p-6">
-              <div className="space-y-3">
-                {(settings.tags || []).map((tag) => (
-                  <div
-                    key={tag}
-                    className="flex items-center justify-between rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-4"
-                  >
-                    {editingTag === tag ? (
-                      <div className="flex-1 space-y-3">
-                        <input
-                          type="text"
-                          value={editingTagName}
-                          onChange={(e) => setEditingTagName(e.target.value)}
-                          className="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                          placeholder="Nome da tag"
-                        />
-                        <div className="flex gap-3">
-                          <div className="flex items-center gap-2">
-                            <label className="text-sm text-[var(--text-secondary)]">
-                              Cor de fundo:
-                            </label>
-                            <input
-                              type="color"
-                              value={editingTagColor.bg}
-                              onChange={(e) =>
-                                setEditingTagColor({
-                                  ...editingTagColor,
-                                  bg: e.target.value,
-                                })
-                              }
-                              className="h-8 w-12 rounded cursor-pointer border border-[var(--border-color)]"
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <label className="text-sm text-[var(--text-secondary)]">
-                              Cor do texto:
-                            </label>
-                            <input
-                              type="color"
-                              value={editingTagColor.text}
-                              onChange={(e) =>
-                                setEditingTagColor({
-                                  ...editingTagColor,
-                                  text: e.target.value,
-                                })
-                              }
-                              className="h-8 w-12 rounded cursor-pointer border border-[var(--border-color)]"
-                            />
-                          </div>
-                        </div>
+          {/* Classifications */}
+          {activeTab === 'classifications' && (
+            <div className="space-y-3 p-6">
+              {(settings.classifications || []).map((c, i) => {
+                const count = getTasksUsingClassification(c);
+                return (
+                  <div key={c} className="flex items-center justify-between rounded-lg border p-3.5" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }}>
+                    {editingClassification === c ? (
+                      <div className="flex-1 space-y-2">
+                        <input type="text" value={editingClassificationName} onChange={(e) => setEditingClassificationName(e.target.value)} className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
                         <div className="flex gap-2">
-                          <button
-                            onClick={handleSaveTagEdit}
-                            className="flex-1 rounded bg-[var(--accent)] px-3 py-2 text-white hover:opacity-90 transition-opacity text-sm font-medium"
-                          >
-                            Salvar
-                          </button>
-                          <button
-                            onClick={() => setEditingTag(null)}
-                            className="flex-1 rounded border border-[var(--border-color)] px-3 py-2 text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition-colors text-sm font-medium"
-                          >
-                            Cancelar
-                          </button>
+                          <button onClick={handleSaveClassificationEdit} className="flex-1 rounded-lg py-1.5 text-xs font-medium text-white" style={{ backgroundColor: 'var(--accent)' }}>Salvar</button>
+                          <button onClick={() => setEditingClassification(null)} className="flex-1 rounded-lg py-1.5 text-xs font-medium border" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>Cancelar</button>
                         </div>
                       </div>
                     ) : (
                       <>
-                        <div className="flex items-center gap-3 flex-1">
-                          <div
-                            className="h-6 w-6 rounded border border-[var(--border-color)]"
-                            style={{
-                              backgroundColor:
-                                settings.tagColors?.[tag]?.bg || '#f97316',
-                            }}
-                          />
-                          <span className="font-medium text-[var(--text-primary)]">
-                            {tag}
-                          </span>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{c}</p>
+                          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{count} tarefa{count !== 1 ? 's' : ''}</p>
                         </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEditTag(tag)}
-                            className="rounded p-2 hover:bg-[var(--bg-card)] transition-colors"
-                          >
-                            <Pencil className="h-4 w-4 text-[var(--text-secondary)]" />
+                        <div className="flex gap-1">
+                          <button onClick={() => handleMoveClassificationUp(i)} disabled={i === 0} className="p-1.5 rounded hover:bg-[var(--bg-hover)] disabled:opacity-30">
+                            <ChevronUp className="h-3.5 w-3.5" style={{ color: 'var(--text-muted)' }} />
                           </button>
-                          <button
-                            onClick={() => setDeleteConfirm(`tag-${tag}`)}
-                            className="rounded p-2 hover:bg-[var(--bg-card)] transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
+                          <button onClick={() => handleMoveClassificationDown(i)} disabled={i === (settings.classifications?.length || 0) - 1} className="p-1.5 rounded hover:bg-[var(--bg-hover)] disabled:opacity-30">
+                            <ChevronDown className="h-3.5 w-3.5" style={{ color: 'var(--text-muted)' }} />
+                          </button>
+                          <button onClick={() => handleEditClassification(c)} className="p-1.5 rounded hover:bg-[var(--bg-hover)]">
+                            <Pencil className="h-3.5 w-3.5" style={{ color: 'var(--text-muted)' }} />
+                          </button>
+                          <button onClick={() => setDeleteConfirm(`classification-${c}`)} className="p-1.5 rounded hover:bg-[var(--danger-light)]">
+                            <Trash2 className="h-3.5 w-3.5" style={{ color: 'var(--danger)' }} />
                           </button>
                         </div>
                       </>
                     )}
                   </div>
-                ))}
-              </div>
+                );
+              })}
 
-              {/* Delete Confirmation */}
-              {deleteConfirm?.startsWith('tag-') && (
-                <div className="rounded-lg border border-red-500 bg-red-500 bg-opacity-10 p-4">
-                  <p className="mb-3 text-sm text-[var(--text-primary)]">
-                    Tem certeza que deseja deletar essa tag?
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() =>
-                        handleDeleteTag(deleteConfirm.replace('tag-', ''))
-                      }
-                      className="flex-1 rounded bg-red-500 px-3 py-2 text-white hover:opacity-90 transition-opacity text-sm font-medium"
-                    >
-                      Deletar
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(null)}
-                      className="flex-1 rounded border border-[var(--border-color)] px-3 py-2 text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition-colors text-sm font-medium"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Add New Tag */}
-              <div className="space-y-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-4">
-                <h4 className="font-medium text-[var(--text-primary)]">
-                  Adicionar tag
-                </h4>
-                <input
-                  type="text"
-                  value={newTagName}
-                  onChange={(e) => setNewTagName(e.target.value)}
-                  className="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                  placeholder="Nome da nova tag"
-                />
-                <div className="flex gap-3">
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-[var(--text-secondary)]">
-                      Cor de fundo:
-                    </label>
-                    <input
-                      type="color"
-                      value={newTagColor.bg}
-                      onChange={(e) =>
-                        setNewTagColor({ ...newTagColor, bg: e.target.value })
-                      }
-                      className="h-8 w-12 rounded cursor-pointer border border-[var(--border-color)]"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-[var(--text-secondary)]">
-                      Cor do texto:
-                    </label>
-                    <input
-                      type="color"
-                      value={newTagColor.text}
-                      onChange={(e) =>
-                        setNewTagColor({ ...newTagColor, text: e.target.value })
-                      }
-                      className="h-8 w-12 rounded cursor-pointer border border-[var(--border-color)]"
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={handleAddTag}
-                  className="flex w-full items-center justify-center gap-2 rounded bg-[var(--accent)] px-4 py-2 text-white hover:opacity-90 transition-opacity font-medium"
-                >
-                  <Plus className="h-4 w-4" />
-                  Adicionar tag
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Classifications Tab */}
-          {activeTab === 'classifications' && (
-            <div className="space-y-4 p-6">
-              <div className="space-y-3">
-                {(settings.classifications || []).map((classification, index) => {
-                  const tasksCount = getTasksUsingClassification(classification);
-                  return (
-                    <div
-                      key={classification}
-                      className="flex items-center justify-between rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-4"
-                    >
-                      {editingClassification === classification ? (
-                        <div className="flex-1 space-y-3">
-                          <input
-                            type="text"
-                            value={editingClassificationName}
-                            onChange={(e) =>
-                              setEditingClassificationName(e.target.value)
-                            }
-                            className="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                            placeholder="Nome da classificação"
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              onClick={handleSaveClassificationEdit}
-                              className="flex-1 rounded bg-[var(--accent)] px-3 py-2 text-white hover:opacity-90 transition-opacity text-sm font-medium"
-                            >
-                              Salvar
-                            </button>
-                            <button
-                              onClick={() => setEditingClassification(null)}
-                              className="flex-1 rounded border border-[var(--border-color)] px-3 py-2 text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition-colors text-sm font-medium"
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex-1">
-                            <p className="font-medium text-[var(--text-primary)]">
-                              {classification}
-                            </p>
-                            <p className="text-xs text-[var(--text-muted)]">
-                              {tasksCount} tarefa{tasksCount !== 1 ? 's' : ''}
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() =>
-                                handleMoveClassificationUp(index)
-                              }
-                              disabled={index === 0}
-                              className="rounded p-2 hover:bg-[var(--bg-card)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <ChevronUp className="h-4 w-4 text-[var(--text-secondary)]" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleMoveClassificationDown(index)
-                              }
-                              disabled={
-                                index ===
-                                (settings.classifications?.length || 0) - 1
-                              }
-                              className="rounded p-2 hover:bg-[var(--bg-card)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <ChevronDown className="h-4 w-4 text-[var(--text-secondary)]" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleEditClassification(classification)
-                              }
-                              className="rounded p-2 hover:bg-[var(--bg-card)] transition-colors"
-                            >
-                              <Pencil className="h-4 w-4 text-[var(--text-secondary)]" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                setDeleteConfirm(`classification-${classification}`)
-                              }
-                              className="rounded p-2 hover:bg-[var(--bg-card)] transition-colors"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Delete Confirmation */}
               {deleteConfirm?.startsWith('classification-') && (
-                <div className="rounded-lg border border-red-500 bg-red-500 bg-opacity-10 p-4">
-                  <div className="mb-3 flex gap-2">
-                    <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">
-                        {getTasksUsingClassification(
-                          deleteConfirm.replace('classification-', '')
-                        ) > 0 &&
-                          `Esta classificação é usada por ${getTasksUsingClassification(deleteConfirm.replace('classification-', ''))} tarefa(s). `}
-                        Tem certeza que deseja deletá-la?
-                      </p>
-                    </div>
+                <div className="rounded-lg border p-3.5" style={{ borderColor: 'var(--danger)', backgroundColor: 'var(--danger-light)' }}>
+                  <div className="flex gap-2 mb-2">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--danger)' }} />
+                    <p className="text-xs" style={{ color: 'var(--text-primary)' }}>
+                      {getTasksUsingClassification(deleteConfirm.replace('classification-', '')) > 0 && `Usada por ${getTasksUsingClassification(deleteConfirm.replace('classification-', ''))} tarefa(s). `}
+                      Deletar?
+                    </p>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() =>
-                        handleDeleteClassification(
-                          deleteConfirm.replace('classification-', '')
-                        )
-                      }
-                      className="flex-1 rounded bg-red-500 px-3 py-2 text-white hover:opacity-90 transition-opacity text-sm font-medium"
-                    >
-                      Deletar
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(null)}
-                      className="flex-1 rounded border border-[var(--border-color)] px-3 py-2 text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition-colors text-sm font-medium"
-                    >
-                      Cancelar
-                    </button>
+                    <button onClick={() => handleDeleteClassification(deleteConfirm.replace('classification-', ''))} className="flex-1 rounded-lg py-1.5 text-xs font-medium text-white" style={{ backgroundColor: 'var(--danger)' }}>Deletar</button>
+                    <button onClick={() => setDeleteConfirm(null)} className="flex-1 rounded-lg py-1.5 text-xs font-medium border" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>Cancelar</button>
                   </div>
                 </div>
               )}
 
-              {/* Add New Classification */}
-              <div className="space-y-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-4">
-                <h4 className="font-medium text-[var(--text-primary)]">
-                  Adicionar classificação
-                </h4>
-                <input
-                  type="text"
-                  value={newClassificationName}
-                  onChange={(e) => setNewClassificationName(e.target.value)}
-                  className="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                  placeholder="Nome da nova classificação"
-                />
-                <button
-                  onClick={handleAddClassification}
-                  className="flex w-full items-center justify-center gap-2 rounded bg-[var(--accent)] px-4 py-2 text-white hover:opacity-90 transition-opacity font-medium"
-                >
-                  <Plus className="h-4 w-4" />
-                  Adicionar classificação
+              <div className="rounded-lg border p-3.5 space-y-2" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }}>
+                <h4 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Nova classificação</h4>
+                <input type="text" value={newClassificationName} onChange={(e) => setNewClassificationName(e.target.value)} placeholder="Nome" className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} />
+                <button onClick={handleAddClassification} className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-white" style={{ backgroundColor: 'var(--accent)' }}>
+                  <Plus className="h-4 w-4" /> Adicionar
                 </button>
               </div>
             </div>
           )}
 
-          {/* Export/Import Tab */}
+          {/* Export */}
           {activeTab === 'export' && (
             <div className="space-y-4 p-6">
-              <p className="text-sm text-[var(--text-secondary)]">
-                Exporte ou importe seus dados e configurações em formato JSON.
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                Exporte ou importe dados em JSON.
               </p>
-
-              <div className="space-y-3">
-                <button
-                  onClick={handleExportData}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--accent)] bg-transparent px-4 py-3 text-[var(--accent)] hover:bg-[var(--bg-primary)] transition-colors font-medium"
-                >
-                  <Download className="h-5 w-5" />
-                  Exportar dados
-                </button>
-
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportData}
-                    className="hidden"
-                    id="import-file"
-                  />
-                  <label
-                    htmlFor="import-file"
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--accent)] bg-transparent px-4 py-3 text-[var(--accent)] hover:bg-[var(--bg-primary)] transition-colors font-medium cursor-pointer"
-                  >
-                    <Upload className="h-5 w-5" />
-                    Importar dados
-                  </label>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-4">
-                <h4 className="mb-2 font-medium text-[var(--text-primary)]">
-                  Informações
-                </h4>
-                <ul className="space-y-2 text-sm text-[var(--text-secondary)]">
-                  <li>• Exporte um backup completo de suas configurações e tarefas</li>
-                  <li>• Importe dados de um backup anterior</li>
-                  <li>• O arquivo deve estar em formato JSON válido</li>
-                  <li>
-                    • Use esta função para trocar de dispositivo ou restaurar dados
-                  </li>
-                </ul>
+              <button onClick={handleExportData} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 font-medium transition-colors" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>
+                <Download className="h-5 w-5" /> Exportar dados
+              </button>
+              <div className="relative">
+                <input type="file" accept=".json" onChange={handleImportData} className="hidden" id="import-file" />
+                <label htmlFor="import-file" className="flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 font-medium transition-colors cursor-pointer" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>
+                  <Upload className="h-5 w-5" /> Importar dados
+                </label>
               </div>
             </div>
           )}
 
-          {/* Clear Data Tab */}
+          {/* Clear */}
           {activeTab === 'clear' && (
-            <div className="space-y-4 p-6">
-              <div className="rounded-lg border-2 border-red-500 bg-red-500 bg-opacity-10 p-4">
-                <div className="mb-4 flex gap-3">
-                  <AlertTriangle className="h-6 w-6 text-red-500 flex-shrink-0" />
+            <div className="p-6">
+              <div className="rounded-xl border-2 p-4" style={{ borderColor: 'var(--danger)', backgroundColor: 'var(--danger-light)' }}>
+                <div className="flex gap-3 mb-4">
+                  <AlertTriangle className="h-5 w-5 flex-shrink-0" style={{ color: 'var(--danger)' }} />
                   <div>
-                    <h4 className="font-bold text-red-500 mb-1">
-                      Perigo - Ação Irreversível
-                    </h4>
-                    <p className="text-sm text-[var(--text-primary)]">
-                      Limpar todos os dados deletará permanentemente todas as suas
-                      tarefas, tags e configurações. Esta ação não pode ser desfeita.
+                    <h4 className="font-bold text-sm mb-1" style={{ color: 'var(--danger)' }}>Ação Irreversível</h4>
+                    <p className="text-xs" style={{ color: 'var(--text-primary)' }}>
+                      Limpar todos os dados deletará permanentemente tarefas, tags e configurações.
                     </p>
                   </div>
                 </div>
-
                 {clearConfirmation === 0 ? (
-                  <button
-                    onClick={handleClearData}
-                    className="w-full rounded-lg bg-red-500 px-4 py-3 text-white hover:opacity-90 transition-opacity font-medium"
-                  >
+                  <button onClick={handleClearData} className="w-full rounded-lg py-2.5 text-sm font-medium text-white" style={{ backgroundColor: 'var(--danger)' }}>
                     Limpar todos os dados
                   </button>
                 ) : (
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium text-[var(--text-primary)]">
-                      Tem certeza? Clique novamente para confirmar e deletar tudo
-                      permanentemente.
-                    </p>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>Confirmar?</p>
                     <div className="flex gap-2">
-                      <button
-                        onClick={handleClearData}
-                        className="flex-1 rounded-lg bg-red-500 px-4 py-3 text-white hover:opacity-90 transition-opacity font-medium"
-                      >
-                        Confirmar e deletar
-                      </button>
-                      <button
-                        onClick={() => setClearConfirmation(0)}
-                        className="flex-1 rounded-lg border border-[var(--border-color)] px-4 py-3 text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors font-medium"
-                      >
-                        Cancelar
-                      </button>
+                      <button onClick={handleClearData} className="flex-1 rounded-lg py-2 text-sm font-medium text-white" style={{ backgroundColor: 'var(--danger)' }}>Confirmar</button>
+                      <button onClick={() => setClearConfirmation(0)} className="flex-1 rounded-lg py-2 text-sm font-medium border" style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>Cancelar</button>
                     </div>
                   </div>
                 )}

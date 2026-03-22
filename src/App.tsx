@@ -5,6 +5,7 @@ import { useTasks } from './hooks/useTasks';
 import { useFilters } from './hooks/useFilters';
 import { getSavedTheme, saveTheme } from './utils/sync';
 
+import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import FilterBar from './components/FilterBar';
 import TaskForm from './components/TaskForm';
@@ -35,6 +36,10 @@ function App() {
       return next;
     });
   }, []);
+
+  // Sidebar state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Settings
   const {
@@ -80,7 +85,6 @@ function App() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in inputs
       const target = e.target as HTMLElement;
       if (
         target.tagName === 'INPUT' ||
@@ -96,18 +100,9 @@ function App() {
         setEditingTask(null);
         setShowTaskForm(true);
       }
-      if (e.key === '1') {
-        e.preventDefault();
-        setCurrentView('kanban');
-      }
-      if (e.key === '2') {
-        e.preventDefault();
-        setCurrentView('lista');
-      }
-      if (e.key === '3') {
-        e.preventDefault();
-        setCurrentView('cards');
-      }
+      if (e.key === '1') { e.preventDefault(); setCurrentView('kanban'); }
+      if (e.key === '2') { e.preventDefault(); setCurrentView('lista'); }
+      if (e.key === '3') { e.preventDefault(); setCurrentView('cards'); }
       if (e.key === 'Escape') {
         if (showTaskForm) setShowTaskForm(false);
         if (showSettings) setShowSettings(false);
@@ -157,6 +152,7 @@ function App() {
     await updateTask(id, updates);
   };
 
+  const sidebarWidth = sidebarCollapsed ? 72 : 240;
 
   // Render current view
   const renderView = () => {
@@ -180,28 +176,21 @@ function App() {
           <div className="text-center max-w-md mx-auto px-4">
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-              style={{ backgroundColor: 'var(--accent)', opacity: 0.2 }}
+              style={{ backgroundColor: 'var(--accent-subtle)' }}
             >
-              <svg
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="2"
-              >
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
                 <path d="M12 5v14M5 12h14" />
               </svg>
             </div>
             <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
               Nenhuma tarefa ainda
             </h3>
-            <p className="mb-6" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
               Comece adicionando sua primeira tarefa para organizar e priorizar seu backlog.
             </p>
             <button
               onClick={handleNewTask}
-              className="px-6 py-3 rounded-lg font-medium text-white transition-colors"
+              className="px-6 py-3 rounded-xl font-medium text-white transition-all hover:opacity-90"
               style={{ backgroundColor: 'var(--accent)' }}
             >
               Criar primeira tarefa
@@ -215,12 +204,12 @@ function App() {
       return (
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
-            <p className="text-lg mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
               Nenhuma tarefa encontrada com os filtros atuais.
             </p>
             <button
               onClick={resetFilters}
-              className="text-sm underline"
+              className="text-sm font-medium underline"
               style={{ color: 'var(--accent)' }}
             >
               Limpar filtros
@@ -269,46 +258,89 @@ function App() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      <Header
-        currentView={currentView}
-        onViewChange={setCurrentView}
-        onNewTask={handleNewTask}
-        onOpenSettings={() => setShowSettings(true)}
-        onOpenTrash={() => setShowTrash(true)}
-        trashCount={trashTasks.length}
-        darkMode={darkMode}
-        onToggleDarkMode={toggleDarkMode}
-      />
+      {/* Sidebar - Desktop */}
+      <div className="hidden md:block">
+        <Sidebar
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          onNewTask={handleNewTask}
+          onOpenSettings={() => setShowSettings(true)}
+          onOpenTrash={() => setShowTrash(true)}
+          trashCount={trashTasks.length}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+      </div>
 
-      <main className="max-w-[1400px] mx-auto px-4 pb-8">
-        <FilterBar
-          filters={filters}
-          onUpdateFilter={updateFilter}
-          onToggleArrayFilter={toggleArrayFilter}
-          onReset={resetFilters}
-          activeFilterCount={activeFilterCount}
-          totalCount={tasks.length}
+      {/* Mobile Sidebar Overlay */}
+      {mobileSidebarOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 z-30 md:hidden animate-fadeIn"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+          <div className="md:hidden z-40">
+            <Sidebar
+              currentView={currentView}
+              onViewChange={(v) => { setCurrentView(v); setMobileSidebarOpen(false); }}
+              onNewTask={() => { handleNewTask(); setMobileSidebarOpen(false); }}
+              onOpenSettings={() => { setShowSettings(true); setMobileSidebarOpen(false); }}
+              onOpenTrash={() => { setShowTrash(true); setMobileSidebarOpen(false); }}
+              trashCount={trashTasks.length}
+              collapsed={false}
+              onToggleCollapse={() => setMobileSidebarOpen(false)}
+            />
+          </div>
+        </>
+      )}
+
+      {/* Main Content */}
+      <div
+        className="transition-all duration-300"
+        style={{ marginLeft: typeof window !== 'undefined' && window.innerWidth >= 768 ? `${sidebarWidth}px` : '0' }}
+      >
+        <Header
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          onNewTask={handleNewTask}
+          onOpenSettings={() => setShowSettings(true)}
+          onOpenTrash={() => setShowTrash(true)}
+          trashCount={trashTasks.length}
+          darkMode={darkMode}
+          onToggleDarkMode={toggleDarkMode}
+          searchValue={filters.search || ''}
+          onSearchChange={(v) => updateFilter('search', v)}
+          onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+          taskCount={tasks.length}
           filteredCount={filteredTasks.length}
-          settings={settings}
         />
 
-        {renderView()}
-      </main>
+        <main className="px-6 py-6">
+          <FilterBar
+            filters={filters}
+            onUpdateFilter={updateFilter}
+            onToggleArrayFilter={toggleArrayFilter}
+            onReset={resetFilters}
+            activeFilterCount={activeFilterCount}
+            totalCount={tasks.length}
+            filteredCount={filteredTasks.length}
+            settings={settings}
+          />
 
-      {/* Task Form Modal */}
+          {renderView()}
+        </main>
+      </div>
+
+      {/* Modals */}
       <TaskForm
         task={editingTask}
         isOpen={showTaskForm}
-        onClose={() => {
-          setShowTaskForm(false);
-          setEditingTask(null);
-        }}
+        onClose={() => { setShowTaskForm(false); setEditingTask(null); }}
         onSave={handleSaveTask}
         onDelete={handleDeleteTask}
         settings={settings}
       />
 
-      {/* Settings Panel */}
       <SettingsPanel
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
@@ -320,7 +352,6 @@ function App() {
         allTasks={allTasks}
       />
 
-      {/* Trash View */}
       {showTrash && (
         <TrashView
           tasks={trashTasks}
