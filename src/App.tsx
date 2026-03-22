@@ -79,6 +79,7 @@ function App() {
   const [currentView, setCurrentView] = useState<ViewType>('kanban');
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [formKey, setFormKey] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
 
@@ -122,11 +123,13 @@ function App() {
   // Handlers
   const handleNewTask = () => {
     setEditingTask(null);
+    setFormKey(prev => prev + 1);
     setShowTaskForm(true);
   };
 
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
+    setFormKey(prev => prev + 1);
     setShowTaskForm(true);
   };
 
@@ -144,6 +147,27 @@ function App() {
 
   const handleDeleteTask = async (id: string) => {
     await softDeleteTask(id);
+    setShowTaskForm(false);
+    setEditingTask(null);
+  };
+
+  // Break a parent task into independent subtask cards
+  const handleBreakIntoSubtasks = async (parentTask: Task, steps: string[]) => {
+    for (let i = 0; i < steps.length; i++) {
+      await createTask({
+        title: `${parentTask.title}: Etapa ${i + 1} — ${steps[i]}`,
+        description: `Subtarefa da tarefa "${parentTask.title}".\n\nEtapa ${i + 1} de ${steps.length}: ${steps[i]}`,
+        notes: '',
+        tags: parentTask.tags || [],
+        classification: parentTask.classification || '',
+        status: 'pendente',
+        leverages: parentTask.leverages || [],
+        dimensions: parentTask.dimensions,
+        completedAt: null,
+        deletedAt: null,
+      });
+    }
+    // Optionally mark the parent as completed or keep it
     setShowTaskForm(false);
     setEditingTask(null);
   };
@@ -333,11 +357,13 @@ function App() {
 
       {/* Modals */}
       <TaskForm
+        key={formKey}
         task={editingTask}
         isOpen={showTaskForm}
         onClose={() => { setShowTaskForm(false); setEditingTask(null); }}
         onSave={handleSaveTask}
         onDelete={handleDeleteTask}
+        onBreakIntoSubtasks={handleBreakIntoSubtasks}
         settings={settings}
       />
 

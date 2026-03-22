@@ -8,6 +8,11 @@ import {
   FileText,
   Users,
   DollarSign,
+  ListOrdered,
+  Plus,
+  Minus,
+  Scissors,
+  AlignLeft,
 } from 'lucide-react';
 import type { Task, DimensionKey, LeverageType, UserSettings } from '../types';
 import {
@@ -23,6 +28,7 @@ interface TaskFormProps {
   onClose: () => void;
   onSave: (task: Omit<Task, 'id' | 'priorityScore' | 'createdAt' | 'updatedAt'>) => void;
   onDelete?: (id: string) => void;
+  onBreakIntoSubtasks?: (parentTask: Task, steps: string[]) => void;
   settings: UserSettings;
 }
 
@@ -45,6 +51,7 @@ export default function TaskForm({
   onClose,
   onSave,
   onDelete,
+  onBreakIntoSubtasks,
   settings,
 }: TaskFormProps) {
   const isEditing = !!task?.id;
@@ -68,6 +75,21 @@ export default function TaskForm({
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Subtasks mode
+  const [subtasksMode, setSubtasksMode] = useState(false);
+  const [subtaskSteps, setSubtaskSteps] = useState<string[]>(['']);
+
+  // Check if current task has subtask steps in description (format: "1. xxx\n2. yyy")
+  const existingSteps = useMemo(() => {
+    if (!task?.description) return [];
+    const lines = task.description.split('\n').filter(l => l.trim());
+    const stepPattern = /^\d+\.\s+/;
+    if (lines.length >= 2 && lines.every(l => stepPattern.test(l))) {
+      return lines.map(l => l.replace(stepPattern, '').trim());
+    }
+    return [];
+  }, [task?.description]);
+
   const priorityScore = useMemo(
     () => calculatePriorityScore(dimensions, settings.activeDimensions),
     [dimensions, settings.activeDimensions]
@@ -81,10 +103,66 @@ export default function TaskForm({
     }
   };
 
+  const handleToggleSubtasksMode = () => {
+    if (!subtasksMode) {
+      // Entering subtask mode
+      if (description.trim()) {
+        // Try to parse existing numbered steps
+        const lines = description.split('\n').filter(l => l.trim());
+        const stepPattern = /^\d+\.\s+/;
+        if (lines.every(l => stepPattern.test(l))) {
+          setSubtaskSteps(lines.map(l => l.replace(stepPattern, '').trim()));
+        } else {
+          setSubtaskSteps([description.trim()]);
+        }
+      } else {
+        setSubtaskSteps(['']);
+      }
+      setSubtasksMode(true);
+    } else {
+      // Exiting subtask mode — convert steps back to description
+      const nonEmpty = subtaskSteps.filter(s => s.trim());
+      if (nonEmpty.length > 0) {
+        setDescription(nonEmpty.map((s, i) => `${i + 1}. ${s}`).join('\n'));
+      }
+      setSubtasksMode(false);
+    }
+  };
+
+  const handleAddStep = () => {
+    setSubtaskSteps([...subtaskSteps, '']);
+  };
+
+  const handleRemoveStep = (index: number) => {
+    if (subtaskSteps.length <= 1) return;
+    setSubtaskSteps(subtaskSteps.filter((_, i) => i !== index));
+  };
+
+  const handleStepChange = (index: number, value: string) => {
+    const updated = [...subtaskSteps];
+    updated[index] = value;
+    setSubtaskSteps(updated);
+  };
+
+  const handleBreakIntoSubtasks = () => {
+    if (!onBreakIntoSubtasks || !task) return;
+    const steps = existingSteps.length > 0 ? existingSteps : subtaskSteps.filter(s => s.trim());
+    if (steps.length === 0) return;
+    onBreakIntoSubtasks(task as Task, steps);
+  };
+
   const handleSave = () => {
     if (!title.trim()) { alert('Título é obrigatório'); return; }
+
+    // If in subtasks mode, build description from steps
+    let finalDescription = description.trim();
+    if (subtasksMode) {
+      const nonEmpty = subtaskSteps.filter(s => s.trim());
+      finalDescription = nonEmpty.map((s, i) => `${i + 1}. ${s}`).join('\n');
+    }
+
     onSave({
-      title: title.trim(), description: description.trim(), notes: notes.trim(),
+      title: title.trim(), description: finalDescription, notes: notes.trim(),
       tags, classification, status: status as Task['status'], leverages, dimensions,
       completedAt: task?.completedAt ?? null, deletedAt: task?.deletedAt ?? null,
     });
@@ -170,24 +248,169 @@ export default function TaskForm({
               />
             </div>
 
-            {/* Description */}
+            {/* Description — Normal or Subtasks Mode */}
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                Descrição
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Descreva a tarefa"
-                rows={3}
-                className="w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all resize-none"
-                style={{
-                  backgroundColor: 'var(--bg-primary)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--text-primary)',
-                }}
-              />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                  Descrição
+                </label>
+                <button
+                  onClick={handleToggleSubtasksMode}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all border"
+                  style={{
+                    backgroundColor: subtasksMode ? 'var(--accent-subtle)' : 'var(--bg-hover)',
+                    borderColor: subtasksMode ? 'var(--accent)' : 'var(--border-color)',
+                    color: subtasksMode ? 'var(--accent)' : 'var(--text-secondary)',
+                  }}
+                >
+                  {subtasksMode ? (
+                    <>
+                      <AlignLeft className="w-3.5 h-3.5" />
+                      Texto Livre
+                    </>
+                  ) : (
+                    <>
+                      <ListOrdered className="w-3.5 h-3.5" />
+                      Descrever em Etapas
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {subtasksMode ? (
+                <div className="space-y-2.5">
+                  {subtaskSteps.map((step, index) => (
+                    <div key={index} className="flex items-center gap-2 animate-fadeIn">
+                      {/* Number Badge */}
+                      <div
+                        className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
+                        style={{
+                          backgroundColor: 'var(--accent)',
+                          color: 'white',
+                        }}
+                      >
+                        {index + 1}
+                      </div>
+                      {/* Step Input */}
+                      <input
+                        type="text"
+                        value={step}
+                        onChange={(e) => handleStepChange(index, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddStep();
+                            // Focus next input after render
+                            setTimeout(() => {
+                              const inputs = document.querySelectorAll<HTMLInputElement>('[data-step-input]');
+                              inputs[inputs.length - 1]?.focus();
+                            }, 50);
+                          }
+                        }}
+                        data-step-input
+                        placeholder={`Etapa ${index + 1}...`}
+                        className="flex-1 px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all"
+                        style={{
+                          backgroundColor: 'var(--bg-primary)',
+                          borderColor: 'var(--border-color)',
+                          color: 'var(--text-primary)',
+                        }}
+                        autoFocus={index === subtaskSteps.length - 1}
+                      />
+                      {/* Remove */}
+                      {subtaskSteps.length > 1 && (
+                        <button
+                          onClick={() => handleRemoveStep(index)}
+                          className="flex-shrink-0 p-1.5 rounded-lg transition-colors hover:bg-[var(--danger-light)]"
+                          style={{ color: 'var(--danger)' }}
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Add Step */}
+                  <button
+                    onClick={handleAddStep}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed text-xs font-medium transition-all hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                    style={{
+                      borderColor: 'var(--border-color)',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Adicionar etapa
+                  </button>
+                </div>
+              ) : (
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Descreva a tarefa"
+                  rows={3}
+                  className="w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all resize-none"
+                  style={{
+                    backgroundColor: 'var(--bg-primary)',
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+              )}
             </div>
+
+            {/* Break into Subtasks — only shows when editing a task that has numbered steps */}
+            {isEditing && existingSteps.length >= 2 && onBreakIntoSubtasks && (
+              <div
+                className="p-4 rounded-xl border-2 border-dashed"
+                style={{
+                  borderColor: 'var(--accent)',
+                  backgroundColor: 'var(--accent-subtle)',
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <Scissors className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--accent)' }} />
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                      Quebrar em Subtarefas
+                    </h4>
+                    <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+                      Esta tarefa possui {existingSteps.length} etapas. Você pode transformá-las em tarefas independentes.
+                    </p>
+
+                    {/* Preview */}
+                    <div className="space-y-1.5 mb-3">
+                      {existingSteps.map((step, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
+                          style={{ backgroundColor: 'var(--bg-card)' }}
+                        >
+                          <span
+                            className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-white"
+                            style={{ backgroundColor: 'var(--accent)' }}
+                          >
+                            {i + 1}
+                          </span>
+                          <span style={{ color: 'var(--text-primary)' }}>
+                            {title}: Etapa {i + 1} — {step}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={handleBreakIntoSubtasks}
+                      className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 flex items-center gap-2"
+                      style={{ backgroundColor: 'var(--accent)' }}
+                    >
+                      <Scissors className="w-4 h-4" />
+                      Criar {existingSteps.length} Subtarefas
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Notes */}
             <div>
